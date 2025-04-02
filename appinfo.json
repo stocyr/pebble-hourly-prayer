@@ -1,8 +1,9 @@
 {
-  "uuid": "89bcd079-41b7-4d8c-bc38-af385d86a55c",
-  "shortName": "Tea Timer",
-  "longName": "Tea Timer",
-  "companyName": "MakeAwesomeHappen",
+  "uuid": "91da7f9b-4846-47b6-8061-e8a5f9bea7df",
+  "shortName": "Liturgy",
+  "longName": "Liturgy of the Hours",
+  "author": "Cyril Stoller",
+  "companyName": "Cyril Stoller",
   "versionCode": "1",
   "versionLabel": "1.0",
   "watchapp": {
@@ -17,12 +18,27 @@
         "menuIcon": true,
         "type": "bitmap",
         "name": "IMAGE_ICON",
-        "file": "cup_icon.png"
+        "file": "cross_icon.png"
       },
       {
         "type": "bitmap",
-        "name": "TEA_SIGN",
-        "file": "tea-sign.png"
+        "name": "CROSS_PIC",
+        "file": "coptic_cross.png"
+      },
+      {
+        "type": "bitmap",
+        "name": "SNOOZE",
+        "file": "action_bar_icon_snooze.png"
+      },
+      {
+        "type": "bitmap",
+        "name": "CONFIRM",
+        "file": "music_icon_play.png"
+      },
+      {
+        "type": "bitmap",
+        "name": "CANCEL",
+        "file": "action_bar_icon_delete.png"
       }
     ]
   },

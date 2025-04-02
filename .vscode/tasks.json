@@ -1,0 +1,38 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "pebble build",
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install on phone",
+            "type": "shell",
+            "command": "pebble install --phone 192.168.0.5 --logs",
+            "group": {
+                "kind": "build",
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install on emulator",
+            "type": "shell",
+            "command": "pebble install --emulator basalt --logs",
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            }
+        }
+    ]
+}
