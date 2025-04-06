@@ -1,7 +1,5 @@
 #include <pebble.h>
 
-#define TEA_TEXT_GAP 14
-
 typedef struct {
   int wday;
   int hour;
@@ -17,7 +15,7 @@ static TextLayer *s_reminder_title_text_layer;
 static BitmapLayer *s_bitmap_layer;
 static Layer *s_prayer_canvas_layer;
 static GBitmap *s_cancel_bitmap, *s_confirm_bitmap, *s_snooze_bitmap, *s_large_cross_bitmap;
-static AppTimer *update_countdown_timer;
+static AppTimer *s_update_countdown_timer;
 static ActionBarLayer *s_action_bar_layer;
 static ScrollLayer *s_scroll_layer;
 
@@ -37,13 +35,13 @@ typedef struct {
 
 // Array of liturgy of the hours prayers  ü ö ä
 Prayer hours_array[] = {
-  {"Laudes",      "Gebet zur ersten Stunde",      9, 00, "Herr Jesus Christus, du unser Gott und wahres Licht, erhelle unsere Sinne und Gedanken, lass und strahlen, damit uns die Dunkelheit nicht überdecke, sondern wir dich mit David preisen und ausrufen: Meine Augen eilen den Nachtwachen voraus, denn ich sinne nach über deine Verheissungen."},
+  {"Laudes",      "Gebet zur ersten Stunde",      9, 15, "Herr Jesus Christus, du unser Gott und wahres Licht, erhelle unsere Sinne und Gedanken, lass und strahlen, damit uns die Dunkelheit nicht überdecke, sondern wir dich mit David preisen und ausrufen: Meine Augen eilen den Nachtwachen voraus, denn ich sinne nach über deine Verheissungen."},
   {"Terz",        "Gebet zur dritten Stunde",    10, 30, "Nimm den Heiligen Geist nicht hinweg von uns, du Gerechter. Vielmehr bitten wir dich: Erneuere in uns einen aufrechten und lebensspendenen Geist, einen Geist der Sohnschaft und Lauterkeit, einen Geist der Heiligkeit, Gerechtigkeit und Vollmacht, o Allmächtiger."},
-  {"Sext",        "Gebet zur sechsten Stunde",   12, 00, "Tilge unsere Qualen durch dein heilbringendes und lebensspendendes Leiden und die Nägel, an denen du gehangen. Gib uns, o Gott, eine Zeit der Freude, einen Wandel ohne Makel, ein Leben in Frieden, damit wir deinem heiligen Namen gerecht werden."},
-  {"Non",         "Gebet zur neunten Stunde",    13, 15, "Wende ab unseren Sinn von irdischer Sorge und sinnlicher Genusssucht und erlöse uns. Erhöre auch uns, du gerechter, die wir den Todesspruch verdienen ob unserer Sünden. Gedenke unser, o Herr, wenn du in dein Reich kommst."},
+  {"Sext",        "Gebet zur sechsten Stunde",   11, 45, "Tilge unsere Qualen durch dein heilbringendes und lebensspendendes Leiden und die Nägel, an denen du gehangen. Gib uns, o Gott, eine Zeit der Freude, einen Wandel ohne Makel, ein Leben in Frieden, damit wir deinem heiligen Namen gerecht werden."},
+  {"Non",         "Gebet zur neunten Stunde",    13, 00, "Wende ab unseren Sinn von irdischer Sorge und sinnlicher Genusssucht und erlöse uns. Erhöre auch uns, du gerechter, die wir den Todesspruch verdienen ob unserer Sünden. Gedenke unser, o Herr, wenn du in dein Reich kommst."},
   {"Vesper",      "Gebet zur elften Stunde",     14, 15, "Tilge, vergib und verzeih uns unsere Missetaten, o Gott, die freiwilligen und unfreiwilligen, die bewussten und unbewussten, die sichtbaren und unsichtbaren. Herr, vergib uns um deines heiligen Namens willen, der über uns ausgerufen ist."},
-  {"Komplet",     "Gebet zur zwölften Stunde",  15, 15, "Lass deine Barmherzigkeit über uns kommen, wie wir uns auf dich, o Herr, verlassen, denn alle Augen warten auf dich, dass du ihnen Speise gibst zur rechten Zeit. Erhöre auch uns, Gott, unser Erlöser, Hoffnung der ganzen Erde."},
-  {"Nacht",       "Mitternachtsgebet",           17, 00, "Kehre gnädig ein und erfülle uns, wasche uns von Makel rein, du Gerechter, und errette unsere Seelen. Wie du mit deinen Jüngern warst und ihnen den Frieden gabst, o Heiland, so komme auch zu uns und gib uns deinen Frieden, errette uns und erlöse unsere Seelen."}
+  {"Komplet",     "Gebet zur zwölften Stunde",   15, 30, "Lass deine Barmherzigkeit über uns kommen, wie wir uns auf dich, o Herr, verlassen, denn alle Augen warten auf dich, dass du ihnen Speise gibst zur rechten Zeit. Erhöre auch uns, Gott, unser Erlöser, Hoffnung der ganzen Erde."},
+  {"Nacht",       "Mitternachtsgebet",           16, 45, "Kehre gnädig ein und erfülle uns, wasche uns von Makel rein, du Gerechter, und errette unsere Seelen. Wie du mit deinen Jüngern warst und ihnen den Frieden gabst, o Heiland, so komme auch zu uns und gib uns deinen Frieden, errette uns und erlöse unsere Seelen."}
 };
 int num_hours = ARRAY_LENGTH(hours_array);
 
@@ -116,7 +114,13 @@ static int find_next_prayer(time_t *future_timestamp) {
 }
 
 void schedule_wakeup_time(time_t *timestamp, int32_t cookie) {
-  // If not, schedule it.
+  // Cancel any existing wakeup first
+  if (s_wakeup_id >= 0) {
+    wakeup_cancel(s_wakeup_id);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Cancelled existing wakeup id: %d", (int)s_wakeup_id);
+  }
+  
+  // Schedule the new wakeup
   char tmp[30];
   strftime(tmp, sizeof(tmp), "%D %H:%M", localtime(timestamp));
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Scheduling prayer \"%d\" for %s", (int)cookie, tmp);
@@ -182,20 +186,22 @@ static void timer_handler(void *data) {
   }
 
   layer_mark_dirty(text_layer_get_layer(s_next_prayer_time_text_layer));
-  update_countdown_timer = app_timer_register(1000 * SECONDS_PER_MINUTE, timer_handler, data);
+  s_update_countdown_timer = app_timer_register(1000 * SECONDS_PER_MINUTE, timer_handler, data);
 }
 
 static void preview_screen_back_handler(ClickRecognizerRef recognizer, void *context) {
-  app_timer_cancel(update_countdown_timer);
+  app_timer_cancel(s_update_countdown_timer);
   window_stack_pop_all(true); // Exit app
 }
 
 // Cancel the current wakeup event on the countdown screen
 static void preview_screen_cancel_handler(ClickRecognizerRef recognizer, void *context) {
-  app_timer_cancel(update_countdown_timer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Clicked down --> remove wakeup");
+  app_timer_cancel(s_update_countdown_timer);
   wakeup_cancel_all();
   s_wakeup_id = -1;
   persist_delete(PERSIST_WAKEUP);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Then exit the app.");
   window_stack_pop_all(true); // Exit app
 }
 
@@ -251,7 +257,7 @@ static void preview_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_cancel_text_layer));
 
   s_wakeup_timestamp = 0;
-  update_countdown_timer = app_timer_register(0, timer_handler, NULL);
+  s_update_countdown_timer = app_timer_register(0, timer_handler, NULL);
 }
 
 static void preview_window_unload(Window *window) {
@@ -392,7 +398,9 @@ static void reminder_confirm_click_handler(ClickRecognizerRef recognizer, void *
 }
 
 static time_t get_timestamp_plus_snooze(int prayer_id, int snooze_minutes) {
-  return time_start_of_today() + SECONDS_PER_HOUR * hours_array[prayer_id].hour + SECONDS_PER_MINUTE * (hours_array[prayer_id].minute + snooze_minutes);
+  // Use current time plus snooze minutes instead of original prayer time
+  time_t now = time(NULL);
+  return now + (SECONDS_PER_MINUTE * snooze_minutes);
 }
 
 static void reminder_snooze_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -487,8 +495,9 @@ static void reminder_window_unload(Window *window) {
 
 static void wakeup_handler(WakeupId id, int32_t reason) {  // returns if the wakeup is still scheduled (e.g. snoozed)
   APP_LOG(APP_LOG_LEVEL_DEBUG, "wakeup handler");
-  //Delete persistent storage value
+  //Delete persistent storage value and reset wakeup ID
   persist_delete(PERSIST_WAKEUP);
+  s_wakeup_id = -1;
   // Inject the reason into the "next prayer" variable
   s_current_prayer_id = reason;
   // Display the prayer window
