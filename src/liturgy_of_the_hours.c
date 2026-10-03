@@ -6,7 +6,7 @@ typedef struct {
   int minute;
 } TimeInWeek;
 
-TimeInWeek last_prayer_of_week = {4, 13, 00}; // Stop reminding after Sunday 13:00 
+TimeInWeek last_prayer_of_week = {4, 18, 00}; // Stop reminding after Friday 18:00 
 
 static Window *s_menu_window, *s_preview_window, *s_prayer_window, *s_reminder_window;
 static TextLayer *s_next_prayer_text_layer, *s_next_prayer_time_text_layer, *s_cancel_text_layer;

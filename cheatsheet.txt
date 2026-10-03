@@ -1,0 +1,21 @@
+============================
+Pebble Command Cheat Sheet
+============================
+
+ Build App:				pebble build
+
+ Install on Pebble Steel Emulator:	pebble install --emulator aplite
+
+ Install on Pebble Time Emulator:	pebble install --emulator basalt
+
+ Install on Pebble Time Round Emulator:	pebble install --emulator chalk
+
+ Install on Pebble 2 Emulator:		pebble install --emulator diorite
+
+ Kill Emulator:				pebble kill
+
+ Reset Emulator:			pebble wipe
+
+ Install on phone:			pebble install --phone <ip address>
+
+ Get more Pebble commands:		pebble -h
